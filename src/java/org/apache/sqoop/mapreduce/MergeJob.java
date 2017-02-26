@@ -23,6 +23,7 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -114,20 +115,20 @@ public class MergeJob extends JobBase {
 
       FileOutputFormat.setOutputPath(job, new Path(options.getTargetDir()));
 
-      if (ExportJobBase.isSequenceFiles(jobConf, newPath)) {
+      if (ExportJobBase.isSequenceFiles(jobConf, newPath) && options.getFileLayout().toString() == "SequenceFile") {
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         job.setMapperClass(MergeRecordMapper.class);
+        job.setOutputKeyClass(LongWritable.class);
+        jobConf.set("mapred.output.value.class", userClassName);
+        job.setReducerClass(MergeSequenceFileReducer.class);
       } else {
         job.setMapperClass(MergeTextMapper.class);
         job.setOutputFormatClass(RawKeyTextOutputFormat.class);
+        jobConf.set("mapred.output.key.class", userClassName);
+        job.setOutputValueClass(NullWritable.class);
+        job.setReducerClass(MergeReducer.class);
       }
-
-      jobConf.set("mapred.output.key.class", userClassName);
-      job.setOutputValueClass(NullWritable.class);
-
-      job.setReducerClass(MergeReducer.class);
-
       // Set the intermediate data types.
       job.setMapOutputKeyClass(Text.class);
       job.setMapOutputValueClass(MergeRecord.class);
