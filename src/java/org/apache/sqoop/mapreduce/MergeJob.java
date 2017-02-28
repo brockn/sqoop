@@ -115,7 +115,7 @@ public class MergeJob extends JobBase {
 
       FileOutputFormat.setOutputPath(job, new Path(options.getTargetDir()));
 
-      if (ExportJobBase.isSequenceFiles(jobConf, newPath) && options.getFileLayout().toString() == "SequenceFile") {
+      if (ExportJobBase.isSequenceFiles(jobConf, newPath) && options.getFileLayout().equals("SequenceFile")) {
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         job.setMapperClass(MergeRecordMapper.class);
