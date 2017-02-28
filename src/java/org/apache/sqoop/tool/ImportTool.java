@@ -40,6 +40,7 @@ import org.apache.hadoop.fs.Path;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.sqoop.orm.ClassWriter;
 
 import com.cloudera.sqoop.Sqoop;
 import com.cloudera.sqoop.SqoopOptions;
@@ -446,7 +447,7 @@ public class ImportTool extends com.cloudera.sqoop.tool.BaseSqoopTool {
         options.setTargetDir(destDir.toString());
 
         // Local job tracker needs jars in the classpath.
-        loadJars(options.getConf(), context.getJarFile(), context.getTableName());
+        loadJars(options.getConf(), context.getJarFile(), ClassWriter.toJavaIdentifier(context.getTableName()));
 
         MergeJob mergeJob = new MergeJob(options);
         if (mergeJob.runMergeJob()) {
