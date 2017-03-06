@@ -127,15 +127,16 @@ public class MergeJob extends JobBase {
         
 
         
-//        Class<DatasetKeyInputFormat> inClass = DatasetKeyInputFormat.class;
-//        job.setInputFormatClass(inClass);
-//       
-//        Class<DatasetKeyOutputFormat> outClass = DatasetKeyOutputFormat.class;
-//        job.setOutputFormatClass(outClass);
+        Class<DatasetKeyInputFormat> inClass = DatasetKeyInputFormat.class;
+        job.setInputFormatClass(inClass);
+       
+        Class<DatasetKeyOutputFormat> outClass = DatasetKeyOutputFormat.class;
+        job.setOutputFormatClass(outClass);
         //NOt above do these
-        propagateOptionsToJob(job);
-        configureInputFormat(job, options.getTableName(), "codegen_"+options.getTableName(), options.getSplitByCol());
-        configureOutputFormat(job, options.getTableName(), "codegen_"+options.getTableName());
+      //  propagateOptionsToJob(job);
+        //configureInputFormat(job, tableName, tableClassName, splitByCol);
+        //configureOutputFormat(job, tableName, tableClassName);
+        
         
         job.setOutputKeyClass(GenericRecord.class);
         job.setMapperClass(MergeParquetMapper.class);

@@ -447,8 +447,14 @@ public class ImportTool extends com.cloudera.sqoop.tool.BaseSqoopTool {
         options.setTargetDir(destDir.toString());
 
         // Local job tracker needs jars in the classpath.
-        loadJars(options.getConf(), context.getJarFile(), ClassWriter.toJavaIdentifier(context.getTableName()));
-
+        if (options.getFileLayout() == SqoopOptions.FileLayout.ParquetFile) {
+          loadJars(options.getConf(), context.getJarFile(),
+              ClassWriter.toJavaIdentifier("codegen_" + context.getTableName()));
+        } else {
+          loadJars(options.getConf(), context.getJarFile(),
+              ClassWriter.toJavaIdentifier(context.getTableName()));
+        }
+        
         MergeJob mergeJob = new MergeJob(options);
         if (mergeJob.runMergeJob()) {
           // Rename destination directory to proper location.
@@ -1133,4 +1139,3 @@ public class ImportTool extends com.cloudera.sqoop.tool.BaseSqoopTool {
     validateAccumuloOptions(options);
   }
 }
-
