@@ -16,6 +16,7 @@
 package org.apache.sqoop.mapreduce;
 
 import java.io.IOException;
+import java.net.URI;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
@@ -40,6 +41,27 @@ import com.cloudera.sqoop.mapreduce.JobBase;
 
 import parquet.hadoop.ParquetInputFormat;
 import parquet.hadoop.ParquetOutputFormat;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.mapred.AvroValue;
+import org.apache.avro.mapreduce.AvroJob;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+import parquet.avro.AvroParquetInputFormat;
+import parquet.avro.AvroParquetOutputFormat;
+import parquet.avro.AvroSchemaConverter;
+import parquet.hadoop.Footer;
+import parquet.hadoop.ParquetFileReader;
+import parquet.schema.MessageType;
+
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Run a MapReduce job that merges two datasets.
@@ -118,24 +140,30 @@ public class MergeJob extends JobBase {
       jobConf.set(MERGE_SQOOP_RECORD_KEY, userClassName);
 
       FileOutputFormat.setOutputPath(job, new Path(options.getTargetDir()));
-
+      options.setFileLayout(SqoopOptions.FileLayout.ParquetFile);
       if (options.getFileLayout() == SqoopOptions.FileLayout.ParquetFile) {
         System.out.println("-----ParquetFile format");
 
         //configureInputFormat(job, options.getTableName(), "codegen_"+options.getTableName(), options.getSplitByCol());
         //configureOutputFormat(job, options.getTableName(), "codegen_"+options.getTableName());
         
+        DatasetKeyOutputFormat.configure(job).overwrite(new URI("dataset:" + options.getTargetDir()));
+        List<Footer> footers = new ArrayList<Footer>();
+        footers.addAll(ParquetFileReader.readFooters(job.getConfiguration(), oldPath));
+        footers.addAll(ParquetFileReader.readFooters(job.getConfiguration(), newPath));
+        MessageType schema = footers.get(0).getParquetMetadata().getFileMetaData().getSchema();
+        AvroSchemaConverter avroSchemaConverter = new AvroSchemaConverter();
+        Schema avroSchema = avroSchemaConverter.convert(schema);
+        job.setInputFormatClass(AvroParquetInputFormat.class);
+        AvroParquetInputFormat.setAvroReadSchema(job, avroSchema);
 
-        
-//        Class<DatasetKeyInputFormat> inClass = DatasetKeyInputFormat.class;
-//        job.setInputFormatClass(inClass);
-//       
-//        Class<DatasetKeyOutputFormat> outClass = DatasetKeyOutputFormat.class;
-//        job.setOutputFormatClass(outClass);
-        //NOt above do these
+        Class<DatasetKeyOutputFormat> outClass = DatasetKeyOutputFormat.class;
+        job.setOutputFormatClass(outClass);
+
+        //Not above do these
         propagateOptionsToJob(job);
-        configureInputFormat(job, options.getTableName(), "codegen_"+options.getTableName(), options.getSplitByCol());
-        configureOutputFormat(job, options.getTableName(), "codegen_"+options.getTableName());
+        //configureInputFormat(job, options.getTableName(), "codegen_"+options.getTableName(), options.getSplitByCol());
+        //configureOutputFormat(job, options.getTableName(), "codegen_"+options.getTableName());
         
         job.setOutputKeyClass(GenericRecord.class);
         job.setMapperClass(MergeParquetMapper.class);
@@ -168,7 +196,7 @@ public class MergeJob extends JobBase {
       return this.runJob(job);
     } catch (InterruptedException ie) {
       throw new IOException(ie);
-    } catch (ClassNotFoundException cnfe) {
+    } catch (Exception cnfe) {
       throw new IOException(cnfe);
     }
   }
